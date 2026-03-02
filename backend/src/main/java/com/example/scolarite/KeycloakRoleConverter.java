@@ -13,16 +13,16 @@ import java.util.*;
 public class KeycloakRoleConverter extends JwtAuthenticationConverter {
 
     public KeycloakRoleConverter() {
-        setJwtGrantedAuthoritiesConverter(new KeycloakGroupsAndRolesConverter());
+        setJwtGrantedAuthoritiesConverter(new KeycloakRolesConverter());
     }
 
-    private static class KeycloakGroupsAndRolesConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
+    private static class KeycloakRolesConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
 
         @Override
         public Collection<GrantedAuthority> convert(Jwt jwt) {
             Set<GrantedAuthority> authorities = new HashSet<>();
 
-            // 1. Extraire les rôles existants
+            // Extraire les rôles du realm_access
             Map<String, Object> realmAccess = jwt.getClaim("realm_access");
             if (realmAccess != null && !realmAccess.isEmpty()) {
                 Object rolesObj = realmAccess.get("roles");
@@ -39,43 +39,13 @@ public class KeycloakRoleConverter extends JwtAuthenticationConverter {
                 }
             }
 
-            // 2. Extraire les groupes du token
-            List<String> groups = null;
-            Object groupsObj = jwt.getClaim("groups");
-            if (groupsObj instanceof List) {
-                @SuppressWarnings("unchecked")
-                List<String> groupsList = (List<String>) groupsObj;
-                groups = groupsList;
+            // Optionnel : Ajouter aussi les rôles depuis resource_access si nécessaire
+            Map<String, Object> resourceAccess = jwt.getClaim("resource_access");
+            if (resourceAccess != null) {
+                // Vous pouvez ajouter une logique similaire ici si besoin
             }
 
-            if (groups == null) {
-                groupsObj = jwt.getClaim("group_membership");
-                if (groupsObj instanceof List) {
-                    @SuppressWarnings("unchecked")
-                    List<String> groupsList = (List<String>) groupsObj;
-                    groups = groupsList;
-                }
-            }
-
-            if (groups != null && !groups.isEmpty()) {
-                // Convertir les groupes en authorities
-                groups.stream()
-                        .map(group -> {
-                            String cleanGroup = group.startsWith("/") ? group.substring(1) : group;
-                            return new SimpleGrantedAuthority("GROUP_" + cleanGroup);
-                        })
-                        .forEach(authorities::add);
-
-                // Compatibilité avec hasRole()
-                if (groups.stream().anyMatch(g -> g.contains("ADMINS") || g.equals("/ADMINS"))) {
-                    authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
-                }
-                if (groups.stream().anyMatch(g -> g.contains("PROFESSORS") || g.equals("/PROFESSORS"))) {
-                    authorities.add(new SimpleGrantedAuthority("ROLE_PROFESSOR"));
-                }
-            }
-
-            System.out.println("Authorities extraites: " + authorities);
+            System.out.println("Authorités extraites: " + authorities);
 
             return authorities;
         }
