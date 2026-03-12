@@ -76,8 +76,12 @@ export class KeycloakAuthService {
     if (roles.includes('PROFESSOR')) return 'PROFESSOR';
     if (roles.includes('STUDENT')) return 'STUDENT';
     return 'USER';
-  }
-
+  } 
+  
+  getEmail(): string {
+      const tokenParsed = this.keycloak.getKeycloakInstance().tokenParsed;
+      return tokenParsed?.['email'] || '';
+    }
   // CORRECTION: Retire la méthode avec inject()
   isPending(): boolean {
     return this.getUserRoles().includes('PENDING');

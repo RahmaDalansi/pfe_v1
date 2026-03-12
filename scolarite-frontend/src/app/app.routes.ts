@@ -1,9 +1,11 @@
+// src/app/app.routes.ts
 import { Routes } from '@angular/router';
 import { HomeComponent } from './components/home/home.component';
 import { AdminDashboardComponent } from './components/admin/admin-dashboard.component';
 import { AdminImportComponent } from './components/admin/admin-import.component';
 import { AdminValidationComponent } from './components/admin/admin-validation.component';
 import { UserDashboardComponent } from './components/user/user-dashboard.component';
+import { ProfileComponent } from './components/profile/profile.component'; // NOUVEAU
 import { LoginRedirectComponent } from './components/login/login-redirect.component';
 import { KeycloakDebugComponent } from './components/debug/keycloak-debug.component';
 import { RegisterComponent } from './components/auth/register.component';
@@ -16,6 +18,14 @@ export const routes: Routes = [
   { path: 'register', component: RegisterComponent },
   { path: 'pending', component: PendingComponent },
   { path: 'debug', component: KeycloakDebugComponent },
+  
+  // NOUVEAU: Route Profile
+  { 
+    path: 'profile', 
+    component: ProfileComponent,
+    canActivate: [AuthGuard] // Accessible à tous les utilisateurs connectés
+  },
+  
   { 
     path: 'dashboard', 
     component: UserDashboardComponent,
@@ -23,7 +33,7 @@ export const routes: Routes = [
     data: { roles: ['STUDENT', 'PROFESSOR'] }
   },
   { 
-    path: 'admin/dashboard',  // AJOUTER cette route
+    path: 'admin/dashboard',
     component: AdminDashboardComponent,
     canActivate: [AuthGuard],
     data: { roles: ['ADMIN'] }
@@ -40,9 +50,6 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
     data: { roles: ['ADMIN'] }
   },
-  { 
-    path: 'unauthorized', 
-    component: HomeComponent 
-  },
+  { path: 'unauthorized', component: HomeComponent },
   { path: '**', redirectTo: '' }
 ];
