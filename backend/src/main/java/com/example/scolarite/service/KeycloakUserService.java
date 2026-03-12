@@ -122,10 +122,11 @@ public class KeycloakUserService {
             user.setFirstName(registerDto.getFirstName());
             user.setLastName(registerDto.getLastName());
             user.setEnabled(true);
-            user.setEmailVerified(false); // Email non vérifié
+            user.setEmailVerified(false);
 
-            // Ajouter l'attribut pour le rôle demandé
+            // ✅ AJOUTER LE CIN DANS LES ATTRIBUTS
             Map<String, List<String>> attributes = new HashMap<>();
+            attributes.put("cin", List.of(registerDto.getCin())); // AJOUT IMPORTANT
             attributes.put("requestedRole", List.of(registerDto.getRole() != null ? registerDto.getRole() : "STUDENT"));
             attributes.put("registrationDate", List.of(new Date().toString()));
             user.setAttributes(attributes);
@@ -143,10 +144,10 @@ public class KeycloakUserService {
             // Obtenir l'ID de l'utilisateur créé
             String userId = extractUserIdFromResponse(response);
 
-            // Définir le mot de passe (temporaire)
-            setUserPassword(userId, registerDto.getPassword());
+            // ✅ CORRECTION: Utiliser le CIN comme mot de passe, PAS le champ password
+            setUserPassword(userId, registerDto.getCin());
 
-            // Assigner le rôle PENDING (en attente de validation)
+            // Assigner le rôle PENDING
             assignRoleToUser(userId, "PENDING");
 
             return null; // Pas d'erreur
@@ -156,7 +157,6 @@ public class KeycloakUserService {
             return "Error registering user " + registerDto.getUsername() + ": " + e.getMessage();
         }
     }
-
     /**
      * Obtenir tous les utilisateurs en attente (avec rôle PENDING)
      */
@@ -391,144 +391,138 @@ public class KeycloakUserService {
 
 
 
-        /**
-         * Récupérer le profil complet d'un utilisateur avec toutes ses informations
-         */
+    /**
+     * Récupérer le profil complet d'un utilisateur
+     */
     public ProfileDto getUserProfile(String userId) {
-            try {
-                RealmResource realmResource = keycloak.realm(realm);
-                UserResource userResource = realmResource.users().get(userId);
-                UserRepresentation user = userResource.toRepresentation();
+        try {
+            RealmResource realmResource = keycloak.realm(realm);
+            UserResource userResource = realmResource.users().get(userId);
+            UserRepresentation user = userResource.toRepresentation();
 
-                ProfileDto profile = new ProfileDto();
-                profile.setId(user.getId());
-                profile.setUsername(user.getUsername());
-                profile.setEmail(user.getEmail());
-                profile.setFirstName(user.getFirstName());
-                profile.setLastName(user.getLastName());
-                profile.setCreatedTimestamp(user.getCreatedTimestamp());
-                profile.setEmailVerified(user.isEmailVerified());
-                profile.setEnabled(user.isEnabled());
+            ProfileDto profile = new ProfileDto();
+            profile.setId(user.getId());
+            profile.setUsername(user.getUsername());
+            profile.setEmail(user.getEmail());
+            profile.setFirstName(user.getFirstName());
+            profile.setLastName(user.getLastName());
+            profile.setCreatedTimestamp(user.getCreatedTimestamp());
+            profile.setEmailVerified(user.isEmailVerified());
+            profile.setEnabled(user.isEnabled());
 
-                // Récupérer TOUS les rôles de l'utilisateur
-                List<RoleRepresentation> userRoles = userResource.roles().realmLevel().listAll();
-                List<String> allRoles = userRoles.stream()
-                        .map(RoleRepresentation::getName)
-                        .collect(Collectors.toList());
+            // Récupérer le CIN depuis les attributs
+            if (user.getAttributes() != null) {
+                Map<String, List<String>> attributes = user.getAttributes();
 
-                // Filtrer pour identifier le rôle métier principal
-                List<String> businessRoles = allRoles.stream()
-                        .filter(role -> role.equals("STUDENT") ||
-                                role.equals("PROFESSOR") ||
-                                role.equals("ADMIN"))
-                        .collect(Collectors.toList());
-
-                // Si aucun rôle métier trouvé, déterminer le rôle approprié
-                if (businessRoles.isEmpty()) {
-                    if (allRoles.contains("PENDING")) {
-                        businessRoles = List.of("PENDING");
-                    } else {
-                        businessRoles = List.of("USER");
-                    }
+                // Récupérer le CIN
+                if (attributes.containsKey("cin")) {
+                    profile.setCin(attributes.get("cin").get(0));
                 }
 
-                profile.setRoles(businessRoles);
-                profile.setAllRoles(allRoles); // Garder tous les rôles pour référence
-
-                // Récupérer les attributs personnalisés
-                if (user.getAttributes() != null) {
-                    Map<String, List<String>> attributes = user.getAttributes();
-
-                    if (attributes.containsKey("requestedRole")) {
-                        profile.setRequestedRole(attributes.get("requestedRole").get(0));
-                    }
-                    if (attributes.containsKey("registrationDate")) {
-                        profile.setRegistrationDate(attributes.get("registrationDate").get(0));
-                    }
-                    if (attributes.containsKey("approvedDate")) {
-                        profile.setApprovedDate(attributes.get("approvedDate").get(0));
-                    }
-                    if (attributes.containsKey("approvedBy")) {
-                        profile.setApprovedBy(attributes.get("approvedBy").get(0));
-                    }
-
-                    // Vous pouvez ajouter d'autres attributs selon vos besoins
-                    profile.setAttributes(attributes);
+                // Récupérer les attributs existants
+                if (attributes.containsKey("requestedRole")) {
+                    profile.setRequestedRole(attributes.get("requestedRole").get(0));
+                }
+                if (attributes.containsKey("registrationDate")) {
+                    profile.setRegistrationDate(attributes.get("registrationDate").get(0));
+                }
+                if (attributes.containsKey("approvedDate")) {
+                    profile.setApprovedDate(attributes.get("approvedDate").get(0));
+                }
+                if (attributes.containsKey("approvedBy")) {
+                    profile.setApprovedBy(attributes.get("approvedBy").get(0));
                 }
 
-                return profile;
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                throw new RuntimeException("Erreur lors de la récupération du profil: " + e.getMessage());
+                // Garder tous les attributs pour référence
+                profile.setAttributes(attributes);
             }
+
+            // Récupérer TOUS les rôles de l'utilisateur
+            List<RoleRepresentation> userRoles = userResource.roles().realmLevel().listAll();
+            List<String> allRoles = userRoles.stream()
+                    .map(RoleRepresentation::getName)
+                    .collect(Collectors.toList());
+
+            // Filtrer pour identifier le rôle métier principal
+            List<String> businessRoles = allRoles.stream()
+                    .filter(role -> role.equals("STUDENT") ||
+                            role.equals("PROFESSOR") ||
+                            role.equals("ADMIN"))
+                    .collect(Collectors.toList());
+
+            // Si aucun rôle métier trouvé, déterminer le rôle approprié
+            if (businessRoles.isEmpty()) {
+                if (allRoles.contains("PENDING")) {
+                    businessRoles = List.of("PENDING");
+                } else {
+                    businessRoles = List.of("USER");
+                }
+            }
+
+            profile.setRoles(businessRoles);
+            profile.setAllRoles(allRoles); // Garder tous les rôles pour référence
+
+            return profile;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Erreur lors de la récupération du profil: " + e.getMessage());
         }
+    }
 
         /**
-         * Mettre à jour le profil utilisateur (version améliorée avec gestion des attributs)
+         * Mettre à jour le profil utilisateur
          */
-        public String updateUserProfile(String userId, ProfileDto profileDto) {
+    public String updateUserProfile(String userId, ProfileDto profileDto) {
             try {
                 RealmResource realmResource = keycloak.realm(realm);
                 UserResource userResource = realmResource.users().get(userId);
                 UserRepresentation user = userResource.toRepresentation();
 
                 // Mettre à jour les champs modifiables
-                boolean updated = false;
-
-                if (profileDto.getFirstName() != null && !profileDto.getFirstName().equals(user.getFirstName())) {
+                if (profileDto.getFirstName() != null) {
                     user.setFirstName(profileDto.getFirstName());
-                    updated = true;
                 }
-
-                if (profileDto.getLastName() != null && !profileDto.getLastName().equals(user.getLastName())) {
+                if (profileDto.getLastName() != null) {
                     user.setLastName(profileDto.getLastName());
-                    updated = true;
                 }
-
                 if (profileDto.getEmail() != null && !profileDto.getEmail().equals(user.getEmail())) {
-                    // Vérifier si le nouvel email est disponible (comme dans votre méthode createUser)
                     List<UserRepresentation> usersByEmail = realmResource.users()
                             .searchByEmail(profileDto.getEmail(), true);
-
-                    boolean emailExists = usersByEmail.stream()
-                            .anyMatch(u -> !u.getId().equals(userId));
-
-                    if (emailExists) {
-                        return "Email " + profileDto.getEmail() + " already registered";
+                    if (!usersByEmail.isEmpty() && !usersByEmail.get(0).getId().equals(userId)) {
+                        return "Cet email est déjà utilisé";
                     }
-
                     user.setEmail(profileDto.getEmail());
-                    user.setEmailVerified(false); // Demander une vérification du nouvel email
-                    updated = true;
+                    user.setEmailVerified(false);
                 }
 
-                // Mettre à jour les attributs personnalisés si fournis
-                if (profileDto.getAttributes() != null && !profileDto.getAttributes().isEmpty()) {
-                    Map<String, List<String>> currentAttributes = user.getAttributes();
-                    if (currentAttributes == null) {
-                        currentAttributes = new HashMap<>();
+                // Validation et mise à jour du CIN
+                if (profileDto.getCin() != null) {
+                    String cin = profileDto.getCin().trim();
+                    if (cin.isEmpty()) {
+                        return "Le CIN ne peut pas être vide";
+                    }
+                    // Validation basique pour un CIN tunisien (8 chiffres)
+                    if (!cin.matches("\\d{8}")) {
+                        return "Le CIN doit contenir exactement 8 chiffres";
                     }
 
-                    // Fusionner les nouveaux attributs avec les existants
-                    currentAttributes.putAll(profileDto.getAttributes());
-                    user.setAttributes(currentAttributes);
-                    updated = true;
+                    Map<String, List<String>> attributes = user.getAttributes();
+                    if (attributes == null) {
+                        attributes = new HashMap<>();
+                    }
+                    attributes.put("cin", List.of(cin));
+                    user.setAttributes(attributes);
                 }
 
-                if (updated) {
-                    userResource.update(user);
-                }
-
-                return null; // Succès
+                userResource.update(user);
+                return null;
 
             } catch (Exception e) {
                 e.printStackTrace();
-                return "Error updating user: " + e.getMessage();
+                return "Erreur lors de la mise à jour: " + e.getMessage();
             }
-        }
-
-        /**
+        }        /**
          * Changer le mot de passe (version améliorée avec gestion d'erreur)
          */
         public String changePassword(String userId, String newPassword) {

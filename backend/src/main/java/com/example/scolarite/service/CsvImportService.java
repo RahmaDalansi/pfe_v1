@@ -57,6 +57,14 @@ public class CsvImportService {
                     userDto.setEmail(getFieldValue(record, fieldMapping, "email", null));
                     userDto.setFirstName(getFieldValue(record, fieldMapping, "firstName", null));
                     userDto.setLastName(getFieldValue(record, fieldMapping, "lastName", null));
+
+                    // Récupérer le CIN (obligatoire)
+                    String cin = getFieldValue(record, fieldMapping, "cin", null);
+                    if (cin == null || cin.trim().isEmpty()) {
+                        throw new IllegalArgumentException("Le numéro de carte d'identité (CIN) est obligatoire à la ligne " + record.getRecordNumber());
+                    }
+                    userDto.setCin(cin.trim());
+
                     userDto.setRole(getFieldValue(record, fieldMapping, "role", "STUDENT"));
 
                     usersToImport.add(userDto);
@@ -71,9 +79,10 @@ public class CsvImportService {
 
         response.setTotalProcessed(usersToImport.size());
 
-        // Create each user in Keycloak
+        // Create each user in Keycloak avec le CIN comme mot de passe temporaire
         for (UserImportDto userDto : usersToImport) {
-            String temporaryPassword = generateTemporaryPassword();
+            // Utiliser le CIN comme mot de passe temporaire
+            String temporaryPassword = userDto.getCin();
             String error = keycloakUserService.createUser(userDto, temporaryPassword);
 
             if (error == null) {
@@ -98,6 +107,7 @@ public class CsvImportService {
         possibleHeaders.put("email", List.of("email", "e-mail", "mail", "courriel"));
         possibleHeaders.put("firstName", List.of("firstname", "first_name", "first name", "firstName", "prenom", "prénom"));
         possibleHeaders.put("lastName", List.of("lastname", "last_name", "last name", "lastName", "nom", "name"));
+        possibleHeaders.put("cin", List.of("cin", "carte identite", "carte d'identite", "identite", "id card", "national id", "num carte", "numero carte"));
         possibleHeaders.put("role", List.of("role", "roles", "type", "user_type", "profile"));
 
         // Find matching headers
@@ -153,12 +163,5 @@ public class CsvImportService {
 
         // Last resort: generate random username
         return "user" + System.currentTimeMillis();
-    }
-
-    /**
-     * Generate a temporary password
-     */
-    private String generateTemporaryPassword() {
-        return "password123"; // For demo purposes
     }
 }

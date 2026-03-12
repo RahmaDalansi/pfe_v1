@@ -68,6 +68,14 @@ import { ProfileService, Profile } from '../../services/profile.service';
                         <p class="form-control-plaintext">{{ profile.email }}</p>
                       </div>
                     </div>
+
+                    <!-- Affichage du CIN -->
+                    <div class="row mb-3">
+                      <label class="col-sm-4 col-form-label fw-bold">Numéro CIN:</label>
+                      <div class="col-sm-8">
+                        <p class="form-control-plaintext">{{ profile.cin || 'Non renseigné' }}</p>
+                      </div>
+                    </div>
                     
                     <div class="row mb-3">
                       <label class="col-sm-4 col-form-label fw-bold">Rôle(s):</label>
@@ -103,8 +111,12 @@ import { ProfileService, Profile } from '../../services/profile.service';
                             class="form-control" 
                             [(ngModel)]="editProfile.firstName"
                             name="firstName"
+                            #firstName="ngModel"
                             required
                           >
+                          @if (firstName.invalid && firstName.touched) {
+                            <small class="text-danger">Le prénom est requis</small>
+                          }
                         </div>
                       </div>
 
@@ -116,8 +128,12 @@ import { ProfileService, Profile } from '../../services/profile.service';
                             class="form-control" 
                             [(ngModel)]="editProfile.lastName"
                             name="lastName"
+                            #lastName="ngModel"
                             required
                           >
+                          @if (lastName.invalid && lastName.touched) {
+                            <small class="text-danger">Le nom est requis</small>
+                          }
                         </div>
                       </div>
                       
@@ -129,18 +145,44 @@ import { ProfileService, Profile } from '../../services/profile.service';
                             class="form-control" 
                             [(ngModel)]="editProfile.email"
                             name="email"
+                            #email="ngModel"
                             required
                             email
                           >
+                          @if (email.invalid && email.touched) {
+                            <small class="text-danger">Email valide requis</small>
+                          }
+                        </div>
+                      </div>
+
+                      <!-- Édition du CIN -->
+                      <div class="row mb-3">
+                        <label class="col-sm-4 col-form-label fw-bold">Numéro CIN:</label>
+                        <div class="col-sm-8">
+                          <input 
+                            type="text" 
+                            class="form-control" 
+                            [(ngModel)]="editProfile.cin"
+                            name="cin"
+                            #cin="ngModel"
+                            required
+                            minlength="6"
+                            maxlength="20"
+                          >
+                          @if (cin.invalid && cin.touched) {
+                            <small class="text-danger">Le CIN est requis (min 6 caractères)</small>
+                          }
+                          <small class="text-muted d-block">Minimum 6 caractères</small>
                         </div>
                       </div>
 
                       <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <button class="btn btn-secondary" (click)="cancelEditing()">
+                        <button class="btn btn-secondary" type="button" (click)="cancelEditing()">
                           Annuler
                         </button>
                         <button 
                           class="btn btn-success" 
+                          type="button"
                           (click)="saveProfile()"
                           [disabled]="!profileForm.form.valid || isSaving"
                         >
@@ -263,7 +305,8 @@ export class ProfileComponent implements OnInit {
       this.editProfile = {
         firstName: this.profile.firstName,
         lastName: this.profile.lastName,
-        email: this.profile.email
+        email: this.profile.email,
+        cin: this.profile.cin
       };
       this.isEditing = true;
     }

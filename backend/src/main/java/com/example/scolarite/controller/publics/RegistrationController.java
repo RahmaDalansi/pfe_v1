@@ -38,9 +38,10 @@ public class RegistrationController {
             return ResponseEntity.badRequest().body(response);
         }
 
-        if (registerDto.getPassword() == null || registerDto.getPassword().length() < 6) {
+        // VALIDATION POUR LE CIN
+        if (registerDto.getCin() == null || registerDto.getCin().trim().length() < 6) {
             response.put("success", false);
-            response.put("message", "Le mot de passe doit contenir au moins 6 caractères");
+            response.put("message", "Le CIN doit contenir au moins 6 caractères");
             return ResponseEntity.badRequest().body(response);
         }
 

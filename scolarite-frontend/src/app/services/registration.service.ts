@@ -5,9 +5,9 @@ import { Observable } from 'rxjs';
 export interface RegisterRequest {
   username: string;
   email: string;
+  cin: string;
   firstName: string;
   lastName: string;
-  password: string;
   role: string;
 }
 

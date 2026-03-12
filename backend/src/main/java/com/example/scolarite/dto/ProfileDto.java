@@ -9,6 +9,7 @@ public class ProfileDto {
     private String email;
     private String firstName;
     private String lastName;
+    private String cin;
     private Long createdTimestamp;
     private boolean emailVerified;
     private boolean enabled;
@@ -140,4 +141,7 @@ public class ProfileDto {
     public void setAttributes(Map<String, List<String>> attributes) {
         this.attributes = attributes;
     }
+
+    public String getCin() { return cin; }
+    public void setCin(String cin) { this.cin = cin; }
 }

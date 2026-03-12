@@ -5,6 +5,7 @@ import { Observable, from, switchMap } from 'rxjs';
 import { KeycloakAuthService } from './keycloak.service';
 
 export interface Profile {
+  cin: any;
   id: string;
   username: string;
   email: string;

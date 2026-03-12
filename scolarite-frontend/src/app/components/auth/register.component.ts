@@ -1,3 +1,4 @@
+// src/app/components/auth/register.component.ts
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, AsyncValidatorFn } from '@angular/forms';
@@ -30,22 +31,24 @@ import { of } from 'rxjs';
                       class="form-control" 
                       [class.is-invalid]="registerForm.get('username')?.invalid && registerForm.get('username')?.touched"
                       formControlName="username"
-                      placeholder="john.doe"
+                      placeholder="sarah"
                     >
                     @if (registerForm.get('username')?.pending) {
                       <small class="text-muted">Vérification...</small>
                     }
-                    <div class="invalid-feedback">
-                      @if (registerForm.get('username')?.hasError('required')) {
-                        Nom d'utilisateur requis
-                      }
-                      @if (registerForm.get('username')?.hasError('minlength')) {
-                        Minimum 3 caractères
-                      }
-                      @if (registerForm.get('username')?.hasError('usernameTaken')) {
-                        Ce nom d'utilisateur est déjà pris
-                      }
-                    </div>
+                    @if (registerForm.get('username')?.invalid && registerForm.get('username')?.touched) {
+                      <div class="invalid-feedback">
+                        @if (registerForm.get('username')?.hasError('required')) {
+                          Nom d'utilisateur requis
+                        }
+                        @if (registerForm.get('username')?.hasError('minlength')) {
+                          Minimum 3 caractères
+                        }
+                        @if (registerForm.get('username')?.hasError('usernameTaken')) {
+                          Ce nom d'utilisateur est déjà pris
+                        }
+                      </div>
+                    }
                   </div>
 
                   <!-- Email -->
@@ -56,80 +59,87 @@ import { of } from 'rxjs';
                       class="form-control" 
                       [class.is-invalid]="registerForm.get('email')?.invalid && registerForm.get('email')?.touched"
                       formControlName="email"
-                      placeholder="john.doe@example.com"
+                      placeholder="sarah@gmail.com"
                     >
                     @if (registerForm.get('email')?.pending) {
                       <small class="text-muted">Vérification...</small>
                     }
-                    <div class="invalid-feedback">
-                      @if (registerForm.get('email')?.hasError('required')) {
-                        Email requis
-                      }
-                      @if (registerForm.get('email')?.hasError('email')) {
-                        Email invalide
-                      }
-                      @if (registerForm.get('email')?.hasError('emailTaken')) {
-                        Cet email est déjà utilisé
-                      }
-                    </div>
+                    @if (registerForm.get('email')?.invalid && registerForm.get('email')?.touched) {
+                      <div class="invalid-feedback">
+                        @if (registerForm.get('email')?.hasError('required')) {
+                          Email requis
+                        }
+                        @if (registerForm.get('email')?.hasError('email')) {
+                          Email invalide
+                        }
+                        @if (registerForm.get('email')?.hasError('emailTaken')) {
+                          Cet email est déjà utilisé
+                        }
+                      </div>
+                    }
                   </div>
 
-                  <!-- Prénom et Nom -->
-                  <div class="row">
-                    <div class="col-md-6 mb-3">
-                      <label class="form-label">Prénom</label>
-                      <input 
-                        type="text" 
-                        class="form-control" 
-                        [class.is-invalid]="registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched"
-                        formControlName="firstName"
-                      >
-                      <div class="invalid-feedback">Prénom requis</div>
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                      <label class="form-label">Nom</label>
-                      <input 
-                        type="text" 
-                        class="form-control" 
-                        [class.is-invalid]="registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched"
-                        formControlName="lastName"
-                      >
-                      <div class="invalid-feedback">Nom requis</div>
-                    </div>
-                  </div>
-
-                  <!-- Mot de passe -->
+                  <!-- Numéro Carte d'Identité (CIN) -->
                   <div class="mb-3">
-                    <label class="form-label">Mot de passe</label>
+                    <label class="form-label">Numéro Carte d'Identité (CIN)</label>
                     <input 
-                      type="password" 
+                      type="text" 
                       class="form-control" 
-                      [class.is-invalid]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched"
-                      formControlName="password"
+                      [class.is-invalid]="registerForm.get('cin')?.invalid && registerForm.get('cin')?.touched"
+                      formControlName="cin"
+                      placeholder="00000000"
                     >
-                    <div class="invalid-feedback">
-                      @if (registerForm.get('password')?.hasError('required')) {
-                        Mot de passe requis
-                      }
-                      @if (registerForm.get('password')?.hasError('minlength')) {
-                        Minimum 6 caractères
-                      }
-                    </div>
+                    @if (registerForm.get('cin')?.invalid && registerForm.get('cin')?.touched) {
+                      <div class="invalid-feedback">
+                        @if (registerForm.get('cin')?.hasError('required')) {
+                          Le numéro CIN est requis
+                        }
+                        @if (registerForm.get('cin')?.hasError('minlength')) {
+                          Le CIN doit contenir au moins 6 caractères
+                        }
+                      </div>
+                    }
+                    <small class="text-muted">
+                      Votre CIN sera utilisé comme mot de passe initial
+                    </small>
                   </div>
 
-                  <!-- Confirmation mot de passe -->
+                  <!-- Prénom -->
                   <div class="mb-3">
-                    <label class="form-label">Confirmer mot de passe</label>
+                    <label class="form-label">Prénom</label>
                     <input 
-                      type="password" 
+                      type="text" 
                       class="form-control" 
-                      [class.is-invalid]="registerForm.hasError('passwordMismatch') && registerForm.get('confirmPassword')?.touched"
-                      formControlName="confirmPassword"
+                      [class.is-invalid]="registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched"
+                      formControlName="firstName"
+                      placeholder="sarah"
                     >
-                    <div class="invalid-feedback">
-                      Les mots de passe ne correspondent pas
-                    </div>
+                    @if (registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched) {
+                      <div class="invalid-feedback">
+                        @if (registerForm.get('firstName')?.hasError('required')) {
+                          Prénom requis
+                        }
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Nom -->
+                  <div class="mb-3">
+                    <label class="form-label">Nom</label>
+                    <input 
+                      type="text" 
+                      class="form-control" 
+                      [class.is-invalid]="registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched"
+                      formControlName="lastName"
+                      placeholder="sarah"
+                    >
+                    @if (registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched) {
+                      <div class="invalid-feedback">
+                        @if (registerForm.get('lastName')?.hasError('required')) {
+                          Nom requis
+                        }
+                      </div>
+                    }
                   </div>
 
                   <!-- Rôle -->
@@ -178,7 +188,7 @@ import { of } from 'rxjs';
                   <h4 class="text-success">Inscription réussie !</h4>
                   <p class="mt-3">
                     Votre compte est en attente de validation par un administrateur.<br>
-                    Vous recevrez un email dès que votre compte sera activé.
+                    Utilisez votre numéro CIN <strong>{{registerForm.value.cin}}</strong> comme mot de passe initial.
                   </p>
                   <button class="btn btn-primary mt-3" routerLink="/">
                     Retour à l'accueil
@@ -206,16 +216,18 @@ export class RegisterComponent {
     this.registerForm = this.fb.group({
       username: ['', [Validators.required, Validators.minLength(3)], [this.usernameValidator()]],
       email: ['', [Validators.required, Validators.email], [this.emailValidator()]],
+      cin: ['', [Validators.required, Validators.minLength(6)]],
       firstName: ['', Validators.required],
       lastName: ['', Validators.required],
-      password: ['', [Validators.required, Validators.minLength(6)]],
-      confirmPassword: ['', Validators.required],
       role: ['STUDENT']
-    }, { validator: this.passwordMatchValidator });
+    });
   }
 
   usernameValidator(): AsyncValidatorFn {
     return (control: AbstractControl) => {
+      if (!control.value) {
+        return of(null);
+      }
       return control.valueChanges.pipe(
         debounceTime(500),
         switchMap(value => this.registrationService.checkUsername(value)),
@@ -227,6 +239,9 @@ export class RegisterComponent {
 
   emailValidator(): AsyncValidatorFn {
     return (control: AbstractControl) => {
+      if (!control.value) {
+        return of(null);
+      }
       return control.valueChanges.pipe(
         debounceTime(500),
         switchMap(value => this.registrationService.checkEmail(value)),
@@ -236,14 +251,14 @@ export class RegisterComponent {
     };
   }
 
-  passwordMatchValidator(group: FormGroup) {
-    const password = group.get('password')?.value;
-    const confirm = group.get('confirmPassword')?.value;
-    return password === confirm ? null : { passwordMismatch: true };
-  }
-
   onSubmit() {
-    if (this.registerForm.invalid) return;
+    if (this.registerForm.invalid) {
+      // Marquer tous les champs comme touchés pour afficher les erreurs
+      Object.keys(this.registerForm.controls).forEach(key => {
+        this.registerForm.get(key)?.markAsTouched();
+      });
+      return;
+    }
 
     this.isLoading = true;
     this.errorMessage = '';
@@ -251,18 +266,20 @@ export class RegisterComponent {
     const userData = {
       username: this.registerForm.value.username,
       email: this.registerForm.value.email,
+      cin: this.registerForm.value.cin,
       firstName: this.registerForm.value.firstName,
       lastName: this.registerForm.value.lastName,
-      password: this.registerForm.value.password,
       role: this.registerForm.value.role
     };
 
     this.registrationService.register(userData).subscribe({
-      next: () => {
+      next: (response) => {
+        console.log('Inscription réussie:', response);
         this.isLoading = false;
         this.registrationSuccess = true;
       },
       error: (error) => {
+        console.error('Erreur inscription:', error);
         this.isLoading = false;
         this.errorMessage = error.error?.message || 'Erreur lors de l\'inscription';
       }

@@ -67,9 +67,8 @@ import { HttpEventType } from '@angular/common/http';
         </div>
         <div class="card-body">
           <pre class="bg-light p-3">
-firstName,lastName,email,role
-John,Doe,john.doe@example.com,STUDENT
-Jane,Smith,jane.smith@example.com,STUDENT
+              firstName,lastName,email,cin,role
+              John,Doe,john.doe@example.com,12345678,STUDENT
           </pre>
           <button class="btn btn-outline-primary" (click)="downloadSample()">
             Télécharger exemple CSV
@@ -123,7 +122,7 @@ export class AdminImportComponent {
   }
 
   downloadSample() {
-    const csv = 'firstName,lastName,email,role\nJohn,Doe,john.doe@example.com,STUDENT\nJane,Smith,jane.smith@example.com,STUDENT';
+    const csv = 'firstName,lastName,email,cin,role\nJohn,Doe,john.doe@example.com,11177640,STUDENT';
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
