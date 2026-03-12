@@ -38,6 +38,8 @@ public class SecurityConfig {
                         // Endpoint pour les étudiants
                         .requestMatchers("/api/etudiant/**").hasRole("STUDENT")
 
+                        .requestMatchers("/api/profile/**").authenticated()
+
                         // Tout le reste nécessite une authentification
                         .anyRequest().authenticated()
                 )

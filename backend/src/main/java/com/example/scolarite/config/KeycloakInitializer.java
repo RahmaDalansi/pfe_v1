@@ -24,18 +24,6 @@ public class KeycloakInitializer implements CommandLineRunner {
         try {
             RealmResource realmResource = keycloak.realm(realm);
 
-            // Vérifier si le rôle PENDING existe, sinon le créer
-            try {
-                realmResource.roles().get("PENDING").toRepresentation();
-                System.out.println("Rôle PENDING existe déjà");
-            } catch (Exception e) {
-                // Le rôle n'existe pas, on le crée
-                RoleRepresentation pendingRole = new RoleRepresentation();
-                pendingRole.setName("PENDING");
-                pendingRole.setDescription("Utilisateur en attente de validation");
-                realmResource.roles().create(pendingRole);
-                System.out.println("Rôle PENDING créé avec succès");
-            }
 
         } catch (Exception e) {
             System.err.println("Erreur lors de l'initialisation Keycloak: " + e.getMessage());

@@ -19,7 +19,7 @@ export const routes: Routes = [
   { path: 'pending', component: PendingComponent },
   { path: 'debug', component: KeycloakDebugComponent },
   
-  // NOUVEAU: Route Profile
+  
   { 
     path: 'profile', 
     component: ProfileComponent,

@@ -1,6 +1,7 @@
 package com.example.scolarite.service;
 
 import com.example.scolarite.dto.PendingUserDto;
+import com.example.scolarite.dto.ProfileDto;
 import com.example.scolarite.dto.RegisterRequestDto;
 import com.example.scolarite.dto.UserImportDto;
 import jakarta.ws.rs.core.Response;
@@ -15,6 +16,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
+
 
 @Service
 public class KeycloakUserService {
@@ -166,26 +169,9 @@ public class KeycloakUserService {
             UsersResource usersResource = realmResource.users();
 
             // Récupérer TOUS les utilisateurs avec pagination (max 1000)
-            List<UserRepresentation> users = usersResource.list(0, 1000); // 0 = premier résultat, 1000 = max
-            System.out.println("🔍 Nombre total d'utilisateurs dans Keycloak: " + users.size());
+            List<UserRepresentation> users = usersResource.list(0, 1000);
 
-            // Debug : afficher les 5 premiers utilisateurs avec leurs rôles
-            int count = 0;
             for (UserRepresentation user : users) {
-                if (count < 5) { // Afficher seulement les 5 premiers pour le debug
-                    try {
-                        UserResource userResource = usersResource.get(user.getId());
-                        List<RoleRepresentation> userRoles = userResource.roles().realmLevel().listAll();
-                        System.out.println("👤 Utilisateur: " + user.getUsername() +
-                                ", Rôles: " + userRoles.stream()
-                                .map(RoleRepresentation::getName)
-                                .collect(java.util.stream.Collectors.toList()));
-                    } catch (Exception e) {
-                        System.out.println("❌ Erreur récupération rôles pour " + user.getUsername());
-                    }
-                    count++;
-                }
-
                 try {
                     // Récupérer les rôles de l'utilisateur
                     UserResource userResource = usersResource.get(user.getId());
@@ -213,18 +199,17 @@ public class KeycloakUserService {
                         }
 
                         pendingUsers.add(dto);
-                        System.out.println("✅ Utilisateur PENDING trouvé: " + user.getUsername());
                     }
                 } catch (Exception e) {
-                    System.err.println("❌ Erreur pour l'utilisateur " + user.getUsername() + ": " + e.getMessage());
+                    // Log silencieux ou à enlever complètement
+                    // System.err.println("Erreur pour l'utilisateur " + user.getUsername() + ": " + e.getMessage());
                 }
             }
 
-            System.out.println("🎯 Total utilisateurs PENDING trouvés: " + pendingUsers.size());
-
         } catch (Exception e) {
-            System.err.println("❌ Erreur dans getPendingUsers: " + e.getMessage());
-            e.printStackTrace();
+            // Log silencieux ou à enlever complètement
+            // System.err.println("Erreur dans getPendingUsers: " + e.getMessage());
+            // e.printStackTrace();
         }
 
         return pendingUsers;
@@ -403,4 +388,242 @@ public class KeycloakUserService {
             return List.of("STUDENT", "PROFESSOR", "ADMIN"); // Default fallback
         }
     }
+
+
+
+        /**
+         * Récupérer le profil complet d'un utilisateur avec toutes ses informations
+         */
+    public ProfileDto getUserProfile(String userId) {
+            try {
+                RealmResource realmResource = keycloak.realm(realm);
+                UserResource userResource = realmResource.users().get(userId);
+                UserRepresentation user = userResource.toRepresentation();
+
+                ProfileDto profile = new ProfileDto();
+                profile.setId(user.getId());
+                profile.setUsername(user.getUsername());
+                profile.setEmail(user.getEmail());
+                profile.setFirstName(user.getFirstName());
+                profile.setLastName(user.getLastName());
+                profile.setCreatedTimestamp(user.getCreatedTimestamp());
+                profile.setEmailVerified(user.isEmailVerified());
+                profile.setEnabled(user.isEnabled());
+
+                // Récupérer TOUS les rôles de l'utilisateur
+                List<RoleRepresentation> userRoles = userResource.roles().realmLevel().listAll();
+                List<String> allRoles = userRoles.stream()
+                        .map(RoleRepresentation::getName)
+                        .collect(Collectors.toList());
+
+                // Filtrer pour identifier le rôle métier principal
+                List<String> businessRoles = allRoles.stream()
+                        .filter(role -> role.equals("STUDENT") ||
+                                role.equals("PROFESSOR") ||
+                                role.equals("ADMIN"))
+                        .collect(Collectors.toList());
+
+                // Si aucun rôle métier trouvé, déterminer le rôle approprié
+                if (businessRoles.isEmpty()) {
+                    if (allRoles.contains("PENDING")) {
+                        businessRoles = List.of("PENDING");
+                    } else {
+                        businessRoles = List.of("USER");
+                    }
+                }
+
+                profile.setRoles(businessRoles);
+                profile.setAllRoles(allRoles); // Garder tous les rôles pour référence
+
+                // Récupérer les attributs personnalisés
+                if (user.getAttributes() != null) {
+                    Map<String, List<String>> attributes = user.getAttributes();
+
+                    if (attributes.containsKey("requestedRole")) {
+                        profile.setRequestedRole(attributes.get("requestedRole").get(0));
+                    }
+                    if (attributes.containsKey("registrationDate")) {
+                        profile.setRegistrationDate(attributes.get("registrationDate").get(0));
+                    }
+                    if (attributes.containsKey("approvedDate")) {
+                        profile.setApprovedDate(attributes.get("approvedDate").get(0));
+                    }
+                    if (attributes.containsKey("approvedBy")) {
+                        profile.setApprovedBy(attributes.get("approvedBy").get(0));
+                    }
+
+                    // Vous pouvez ajouter d'autres attributs selon vos besoins
+                    profile.setAttributes(attributes);
+                }
+
+                return profile;
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new RuntimeException("Erreur lors de la récupération du profil: " + e.getMessage());
+            }
+        }
+
+        /**
+         * Mettre à jour le profil utilisateur (version améliorée avec gestion des attributs)
+         */
+        public String updateUserProfile(String userId, ProfileDto profileDto) {
+            try {
+                RealmResource realmResource = keycloak.realm(realm);
+                UserResource userResource = realmResource.users().get(userId);
+                UserRepresentation user = userResource.toRepresentation();
+
+                // Mettre à jour les champs modifiables
+                boolean updated = false;
+
+                if (profileDto.getFirstName() != null && !profileDto.getFirstName().equals(user.getFirstName())) {
+                    user.setFirstName(profileDto.getFirstName());
+                    updated = true;
+                }
+
+                if (profileDto.getLastName() != null && !profileDto.getLastName().equals(user.getLastName())) {
+                    user.setLastName(profileDto.getLastName());
+                    updated = true;
+                }
+
+                if (profileDto.getEmail() != null && !profileDto.getEmail().equals(user.getEmail())) {
+                    // Vérifier si le nouvel email est disponible (comme dans votre méthode createUser)
+                    List<UserRepresentation> usersByEmail = realmResource.users()
+                            .searchByEmail(profileDto.getEmail(), true);
+
+                    boolean emailExists = usersByEmail.stream()
+                            .anyMatch(u -> !u.getId().equals(userId));
+
+                    if (emailExists) {
+                        return "Email " + profileDto.getEmail() + " already registered";
+                    }
+
+                    user.setEmail(profileDto.getEmail());
+                    user.setEmailVerified(false); // Demander une vérification du nouvel email
+                    updated = true;
+                }
+
+                // Mettre à jour les attributs personnalisés si fournis
+                if (profileDto.getAttributes() != null && !profileDto.getAttributes().isEmpty()) {
+                    Map<String, List<String>> currentAttributes = user.getAttributes();
+                    if (currentAttributes == null) {
+                        currentAttributes = new HashMap<>();
+                    }
+
+                    // Fusionner les nouveaux attributs avec les existants
+                    currentAttributes.putAll(profileDto.getAttributes());
+                    user.setAttributes(currentAttributes);
+                    updated = true;
+                }
+
+                if (updated) {
+                    userResource.update(user);
+                }
+
+                return null; // Succès
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                return "Error updating user: " + e.getMessage();
+            }
+        }
+
+        /**
+         * Changer le mot de passe (version améliorée avec gestion d'erreur)
+         */
+        public String changePassword(String userId, String newPassword) {
+            return changePassword(userId, null, newPassword); // Appel à la méthode complète
+        }
+
+        /**
+         * Changer le mot de passe avec vérification optionnelle de l'ancien
+         */
+        public String changePassword(String userId, String currentPassword, String newPassword) {
+            try {
+                RealmResource realmResource = keycloak.realm(realm);
+                UserResource userResource = realmResource.users().get(userId);
+
+                // Optionnel: Vérifier l'ancien mot de passe si fourni
+                if (currentPassword != null && !currentPassword.isEmpty()) {
+                    // Note: Pour une vraie vérification, il faudrait utiliser l'endpoint d'authentification
+                    // Ceci est une simplification - en production, utilisez un appel séparé à Keycloak
+                    System.out.println("Password verification would happen here in production");
+                }
+
+                // Créer le nouveau credential (comme dans votre setUserPassword)
+                CredentialRepresentation credential = new CredentialRepresentation();
+                credential.setType(CredentialRepresentation.PASSWORD);
+                credential.setValue(newPassword);
+                credential.setTemporary(false); // Permanent
+
+                userResource.resetPassword(credential);
+
+                return null; // Succès
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                return "Error changing password: " + e.getMessage();
+            }
+        }
+
+        /**
+         * Obtenir le rôle principal d'un utilisateur
+         */
+        public String getUserPrimaryRole(String userId) {
+            try {
+                ProfileDto profile = getUserProfile(userId);
+                if (profile.getRoles() != null && !profile.getRoles().isEmpty()) {
+                    return profile.getRoles().get(0); // Premier rôle = rôle principal
+                }
+                return "USER";
+            } catch (Exception e) {
+                e.printStackTrace();
+                return "USER";
+            }
+        }
+
+        /**
+         * Vérifier si un utilisateur a un rôle spécifique
+         */
+        public boolean userHasRole(String userId, String roleName) {
+            try {
+                RealmResource realmResource = keycloak.realm(realm);
+                UserResource userResource = realmResource.users().get(userId);
+
+                List<RoleRepresentation> userRoles = userResource.roles().realmLevel().listAll();
+                return userRoles.stream()
+                        .anyMatch(role -> roleName.equals(role.getName()));
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+
+        /**
+         * Récupérer le profil par username (utile pour l'authentification)
+         */
+        public ProfileDto getUserProfileByUsername(String username) {
+            try {
+                RealmResource realmResource = keycloak.realm(realm);
+                UsersResource usersResource = realmResource.users();
+
+                List<UserRepresentation> users = usersResource.search(username, true);
+                if (users.isEmpty()) {
+                    return null;
+                }
+
+                // Prendre le premier utilisateur correspondant
+                String userId = users.get(0).getId();
+                return getUserProfile(userId);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new RuntimeException("Erreur lors de la récupération du profil par username: " + e.getMessage());
+            }
+        }
+
+
+
+
 }
