@@ -10,9 +10,9 @@ import { KeycloakService } from 'keycloak-angular';
   template: `
     <div class="container mt-5 text-center">
       <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Redirection vers Keycloak...</span>
+        <span class="visually-hidden">Redirection...</span>
       </div>
-      <p class="mt-3">Redirection vers la page de connexion...</p>
+      <p class="mt-3">Redirection en cours...</p>
     </div>
   `
 })
@@ -26,8 +26,24 @@ export class LoginRedirectComponent implements OnInit {
   async ngOnInit() {
     try {
       await this.keycloakService.login({
-        redirectUri: window.location.origin + '/dashboard'
+        redirectUri: window.location.origin
       });
+      
+      // Après login, vérifier les rôles
+      setTimeout(() => {
+        const roles = this.keycloakService.getUserRoles();
+        
+        if (roles.includes('ADMIN')) {
+          this.router.navigate(['/admin/dashboard']);
+        } else if (roles.includes('PENDING')) {
+          this.router.navigate(['/pending']);
+        } else if (roles.includes('STUDENT') || roles.includes('PROFESSOR')) {
+          this.router.navigate(['/dashboard']);
+        } else {
+          this.router.navigate(['/']);
+        }
+      }, 1000);
+      
     } catch (error) {
       console.error('Login failed', error);
       this.router.navigate(['/']);

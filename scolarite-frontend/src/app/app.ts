@@ -1,12 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet } from '@angular/router';
+import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { KeycloakAuthService } from './services/keycloak.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet], // Removed RouterLink since we're not using it
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive], // Removed RouterLink since we're not using it
   template: `
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
       <div class="container">
@@ -20,6 +20,7 @@ import { KeycloakAuthService } from './services/keycloak.service';
               Déconnexion
             </button>
           } @else {
+            <a class="nav-link" routerLink="/register">Inscription</a>
             <button class="btn btn-outline-light" (click)="login()">
               Connexion
             </button>

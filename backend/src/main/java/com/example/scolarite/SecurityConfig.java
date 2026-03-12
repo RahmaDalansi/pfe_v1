@@ -10,8 +10,6 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 
-import javax.crypto.spec.SecretKeySpec;
-
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
@@ -29,9 +27,18 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
+                        // 🔵 ANCIENNE LOGIQUE PRÉSERVÉE (inchangée)
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/professeur/**").hasRole("PROFESSOR")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // 🟢 NOUVELLE LOGIQUE AJOUTÉE
+                        // Page d'attente pour utilisateurs en validation
+                        .requestMatchers("/api/user/pending/**").hasRole("PENDING")
+                        // Endpoint pour les étudiants
+                        .requestMatchers("/api/etudiant/**").hasRole("STUDENT")
+
+                        // Tout le reste nécessite une authentification
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
@@ -45,7 +52,6 @@ public class SecurityConfig {
 
     @Bean
     public JwtDecoder jwtDecoder() {
-        // Pour Keycloak, on utilise le jwk-set-uri
         return NimbusJwtDecoder.withJwkSetUri("http://localhost:8081/realms/scolarite/protocol/openid-connect/certs").build();
     }
 }

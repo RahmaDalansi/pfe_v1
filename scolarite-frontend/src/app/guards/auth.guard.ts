@@ -22,16 +22,21 @@ export class AuthGuard {
       return false;
     }
 
+    // Vérifier si l'utilisateur est en attente
+    const userRoles = this.keycloakService.getUserRoles();
+    const isPending = userRoles.includes('PENDING');
+    
+    // Si l'utilisateur est en attente et essaie d'accéder à une route protégée (sauf /pending)
+    if (isPending && state.url !== '/pending') {
+      this.router.navigate(['/pending']);
+      return false;
+    }
+
     const requiredRoles = route.data['roles'] as Array<string>;
     if (requiredRoles) {
-      const userRoles = this.keycloakService.getUserRoles();
-      console.log('User roles:', userRoles); // Debug log
+      console.log('User roles:', userRoles);
       
-      const hasRole = requiredRoles.some(role => {
-        // Check both formats (with and without realm prefix)
-        return userRoles.includes(role) || 
-               userRoles.includes(`realm:${role}`); 
-      });
+      const hasRole = requiredRoles.some(role => userRoles.includes(role));
       
       if (!hasRole) {
         console.log('User missing required role:', requiredRoles);
